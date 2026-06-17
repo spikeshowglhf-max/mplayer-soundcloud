@@ -1,16 +1,21 @@
 {
   "name": "mplayer-soundcloud-desktop",
   "productName": "Mplayer SoundCloud",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Кастомный SoundCloud-плеер как настольное приложение для Windows.",
   "main": "electron/main.js",
   "author": "vlads",
   "license": "MIT",
   "scripts": {
+    "prepare:web": "node scripts/prepare-web-assets.mjs",
     "start": "electron .",
+    "cap:copy": "npm run prepare:web && npx cap copy",
+    "cap:sync": "npm run prepare:web && npx cap sync",
+    "android:add": "npx cap add android",
     "dist:dir": "electron-builder --win dir",
     "dist:portable": "electron-builder --win portable",
-    "dist:installer": "electron-builder --win nsis"
+    "dist:installer": "electron-builder --win nsis",
+    "android:build:debug": "npm run prepare:web && npx cap sync android && cd android && gradlew.bat assembleDebug"
   },
   "build": {
     "appId": "com.vlads.mplayer",
@@ -45,6 +50,9 @@
     }
   },
   "devDependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
     "electron": "^41.3.0",
     "electron-builder": "^26.15.3"
   }

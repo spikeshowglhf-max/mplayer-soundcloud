@@ -16,6 +16,20 @@ npm.cmd run dist:portable
 
 Готовый `.exe` после сборки появится в папке `dist-desktop`.
 
+## Android APK
+
+Проект можно собрать и как Android-приложение через Capacitor.
+
+Локальные команды:
+
+```powershell
+npm.cmd install
+npm.cmd run android:add
+npm.cmd run cap:sync
+```
+
+Для автоматической сборки APK в репозитории есть GitHub Actions workflow.
+
 ## Что уже есть
 
 - Кастомный интерфейс поверх SoundCloud widget

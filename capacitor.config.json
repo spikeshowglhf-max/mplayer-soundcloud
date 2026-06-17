@@ -1,0 +1,6 @@
+{
+  "appId": "com.vlads.mplayer",
+  "appName": "Mplayer SoundCloud",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

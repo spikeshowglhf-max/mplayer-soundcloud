@@ -2,3 +2,5 @@ node_modules/
 dist-desktop/
 dist/
 npm-debug.log*
+www/
+android/
