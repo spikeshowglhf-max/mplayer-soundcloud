@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Кастомный музыкальный плеер для GitHub Pages с очередью и интеграцией SoundCloud.">
+  <meta name="theme-color" content="#ff6b35">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Mplayer SoundCloud</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-512.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <div class="page-glow page-glow-left" aria-hidden="true"></div>
+    <div class="page-glow page-glow-right" aria-hidden="true"></div>
+
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">GitHub Pages + SoundCloud</p>
+        <h1>Кастомный музыкальный плеер с живой очередью</h1>
+        <p class="hero-text">
+          Вставляй публичные ссылки SoundCloud, собирай плейлист, управляй воспроизведением
+          со своей панели и публикуй все это как обычный статический сайт.
+        </p>
+      </div>
+
+      <div class="hero-tools">
+        <label class="accent-picker" for="accentInput">
+          <span>Accent</span>
+          <input id="accentInput" type="color" value="#ff6b35" aria-label="Выбор акцентного цвета">
+        </label>
+        <button id="loadDemoButton" class="ghost-button" type="button">Загрузить демо-трек</button>
+        <a class="ghost-button" href="#libraryCard">Добавить музыку</a>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel player-panel" id="playerPanel">
+        <div class="panel-heading">
+          <p class="panel-kicker">Now playing</p>
+          <div class="status-pill" id="statusPill">Ожидание трека</div>
+        </div>
+
+        <div class="now-playing">
+          <div class="artwork-frame">
+            <img id="artworkImage" alt="Обложка трека" src="" hidden>
+            <div id="artworkFallback" class="artwork-fallback">
+              <span>SC</span>
+            </div>
+          </div>
+
+          <div class="track-meta">
+            <div class="meta-topline">
+              <span class="meta-tag" id="collectionBadge">Single</span>
+              <span class="meta-tag muted-tag" id="repeatBadge">Repeat off</span>
+            </div>
+            <h2 id="trackTitle">Очередь пока пустая</h2>
+            <p id="trackArtist">Добавь ссылку на трек, плейлист или профиль SoundCloud.</p>
+            <div class="meta-links">
+              <a id="openTrackLink" class="link-chip disabled-chip" href="#" target="_blank" rel="noreferrer">Открыть в SoundCloud</a>
+              <button id="copyTrackLinkButton" class="link-chip" type="button">Копировать ссылку</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="scrubber-card">
+          <div class="time-row">
+            <span id="currentTime">0:00</span>
+            <span id="remainingTime">-0:00</span>
+          </div>
+          <input id="progressInput" class="range-input progress-input" type="range" min="0" max="1" step="1" value="0" aria-label="Позиция воспроизведения">
+        </div>
+
+        <div class="primary-controls">
+          <button id="prevButton" class="circle-button" type="button" aria-label="Предыдущий">
+            <span>◀◀</span>
+          </button>
+          <button id="playButton" class="play-button" type="button" aria-label="Пауза или воспроизведение">
+            <span id="playButtonText">Play</span>
+          </button>
+          <button id="nextButton" class="circle-button" type="button" aria-label="Следующий">
+            <span>▶▶</span>
+          </button>
+        </div>
+
+        <div class="secondary-controls">
+          <button id="shuffleButton" class="toggle-button" type="button">Shuffle off</button>
+          <button id="repeatButton" class="toggle-button" type="button">Repeat off</button>
+          <button id="muteButton" class="toggle-button" type="button">Mute off</button>
+        </div>
+
+        <div class="volume-row">
+          <label class="volume-label" for="volumeInput">Volume</label>
+          <input id="volumeInput" class="range-input" type="range" min="0" max="100" step="1" value="80" aria-label="Громкость">
+          <span id="volumeValue">80%</span>
+        </div>
+
+        <div class="hint-grid">
+          <div class="hint-card">
+            <span class="hint-label">Shortcuts</span>
+            <p>Space, ←/→, M, S, R</p>
+          </div>
+          <div class="hint-card">
+            <span class="hint-label">Queue</span>
+            <p id="queueSummary">0 элементов</p>
+          </div>
+          <div class="hint-card">
+            <span class="hint-label">Source</span>
+            <p>Official SoundCloud widget API</p>
+          </div>
+        </div>
+
+        <details class="widget-wrap">
+          <summary>Показать встроенный SoundCloud widget</summary>
+          <div class="widget-frame">
+            <iframe
+              id="soundcloudWidget"
+              title="SoundCloud widget"
+              allow="autoplay"
+              scrolling="no"
+              frameborder="no"
+              src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/forss/flickermood&auto_play=false&buying=false&sharing=false&download=false&show_artwork=true&show_playcount=false&show_user=true&single_active=false&color=%23ff6b35"
+            ></iframe>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel library-panel" id="libraryCard">
+        <div class="panel-heading">
+          <p class="panel-kicker">Library</p>
+          <div class="status-pill neutral-pill">Persistent queue</div>
+        </div>
+
+        <form id="addTrackForm" class="add-form">
+          <label class="field-label" for="trackUrlInput">Ссылки SoundCloud</label>
+          <textarea
+            id="trackUrlInput"
+            rows="4"
+            placeholder="Вставь одну или несколько публичных ссылок SoundCloud, по одной на строку"
+          ></textarea>
+          <div class="form-actions">
+            <button class="solid-button" type="submit">Добавить в очередь</button>
+            <button id="clearInputButton" class="ghost-button" type="button">Очистить поле</button>
+          </div>
+          <p class="field-help">
+            Поддерживаются публичные треки, плейлисты и профили. Метаданные берутся через SoundCloud oEmbed,
+            а воспроизведение идет через официальный widget.
+          </p>
+        </form>
+
+        <div class="queue-actions">
+          <button id="exportQueueButton" class="ghost-button" type="button">Экспорт очереди</button>
+          <button id="importQueueButton" class="ghost-button" type="button">Импорт очереди</button>
+          <button id="clearQueueButton" class="ghost-button danger-button" type="button">Очистить очередь</button>
+          <input id="importFileInput" type="file" accept="application/json" hidden>
+        </div>
+
+        <div class="status-line" id="statusLine" role="status" aria-live="polite">
+          Готово к загрузке музыки.
+        </div>
+
+        <ul id="queueList" class="queue-list" aria-label="Очередь воспроизведения"></ul>
+        <div id="emptyQueueState" class="empty-state">
+          <h3>Очередь пустая</h3>
+          <p>Начни с демо-трека или вставь свои ссылки SoundCloud.</p>
+          <button id="emptyStateDemoButton" class="solid-button" type="button">Добавить демо-трек</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <aside class="mobile-dock" id="mobileDock" aria-label="Мобильный плеер">
+    <button id="mobileOpenPlayerButton" class="mobile-dock-meta" type="button">
+      <span class="mobile-dock-kicker">On the road</span>
+      <strong id="mobileTrackTitle">Очередь пока пустая</strong>
+      <span id="mobileTrackArtist">Добавь SoundCloud ссылку и слушай с телефона.</span>
+    </button>
+
+    <div class="mobile-dock-progress" aria-hidden="true">
+      <span id="mobileProgressFill"></span>
+    </div>
+
+    <div class="mobile-dock-controls">
+      <button id="mobilePrevButton" class="mobile-dock-button" type="button" aria-label="Предыдущий">◀◀</button>
+      <button id="mobilePlayButton" class="mobile-dock-button mobile-dock-play" type="button" aria-label="Пауза или воспроизведение">
+        <span id="mobilePlayButtonText">Play</span>
+      </button>
+      <button id="mobileNextButton" class="mobile-dock-button" type="button" aria-label="Следующий">▶▶</button>
+      <a class="mobile-dock-button mobile-dock-link" href="#libraryCard">Queue</a>
+    </div>
+  </aside>
+
+  <script src="https://w.soundcloud.com/player/api.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
