@@ -178,7 +178,9 @@ function initializeWidget() {
   });
 
   state.widget.bind(window.SC.Widget.Events.ERROR, () => {
-    setStatus("SoundCloud вернул ошибку для текущего элемента. Проверь публичность ссылки.", true);
+    const currentItem = state.queue[state.currentQueueIndex];
+    const failingUrl = currentItem?.sourceUrl || currentItem?.url || "ссылки";
+    setStatus(`SoundCloud не смог загрузить этот элемент: ${failingUrl}. Проверь, что ссылка публичная и открывается в браузере.`, true);
     els.statusPill.textContent = "Source error";
   });
 }
@@ -273,7 +275,7 @@ function renderQueue() {
         <div class="queue-text">
           <h3 class="queue-title">${escapeHtml(item.title || "Без названия")}</h3>
           <p class="queue-subtitle">${escapeHtml(item.author || "SoundCloud")} • ${kindLabel}</p>
-          <p class="queue-url">${escapeHtml(item.url)}</p>
+          <p class="queue-url">${escapeHtml(item.sourceUrl || item.url)}</p>
         </div>
       </div>
       <div class="queue-side">
@@ -322,7 +324,7 @@ function renderNowPlaying() {
   const title = currentSound?.title || queueItem?.title || "Очередь пока пустая";
   const artist = currentSound?.user?.username || queueItem?.author || "Добавь ссылку на трек, плейлист или профиль SoundCloud.";
   const artwork = currentSound?.artwork_url || queueItem?.thumbnailUrl || "";
-  const sourceUrl = currentSound?.permalink_url || queueItem?.url || "";
+  const sourceUrl = currentSound?.permalink_url || queueItem?.sourceUrl || queueItem?.url || "";
 
   els.trackTitle.textContent = title;
   els.trackArtist.textContent = artist;
@@ -450,6 +452,7 @@ async function createQueueItem(url) {
     title: fallbackTitle(url),
     author: "SoundCloud",
     thumbnailUrl: "",
+    widgetUrl: url,
   };
 
   try {
@@ -459,10 +462,12 @@ async function createQueueItem(url) {
     }
 
     const data = await response.json();
+    const widgetUrl = extractWidgetTargetUrl(data.html) || meta.widgetUrl;
     meta = {
       title: data.title || meta.title,
       author: data.author_name || meta.author,
       thumbnailUrl: data.thumbnail_url || "",
+      widgetUrl,
     };
   } catch (error) {
     console.warn("oEmbed metadata failed", error);
@@ -470,7 +475,8 @@ async function createQueueItem(url) {
 
   return {
     id: createId(),
-    url,
+    url: meta.widgetUrl,
+    sourceUrl: url,
     title: meta.title,
     author: meta.author,
     thumbnailUrl: meta.thumbnailUrl,
@@ -1091,6 +1097,25 @@ function updateRangeFill(element, value, max) {
   element.style.setProperty("--range-fill", `${ratio}%`);
 }
 
+function extractWidgetTargetUrl(embedHtml) {
+  if (!embedHtml) {
+    return "";
+  }
+
+  const srcMatch = String(embedHtml).match(/src="([^"]+)"/i);
+  if (!srcMatch?.[1]) {
+    return "";
+  }
+
+  try {
+    const iframeUrl = new URL(srcMatch[1]);
+    return iframeUrl.searchParams.get("url") || "";
+  } catch (error) {
+    console.warn("Unable to parse widget target URL", error);
+    return "";
+  }
+}
+
 function extractSoundCloudInputs(rawText) {
   const lines = rawText
     .split("\n")
@@ -1136,14 +1161,23 @@ function normalizeSoundCloudUrl(rawUrl) {
     throw new Error("Only SoundCloud URLs are supported");
   }
 
-  return url.toString();
+  return url.origin + url.pathname;
 }
 
 function inferKind(url) {
-  if (url.includes("/sets/")) {
+  if (url.includes("/sets/") || url.includes("/playlists/")) {
     return "Playlist";
   }
   const pathSegments = new URL(url).pathname.split("/").filter(Boolean);
+  if (pathSegments[0] === "tracks") {
+    return "Track";
+  }
+  if (pathSegments[0] === "playlists") {
+    return "Playlist";
+  }
+  if (pathSegments[0] === "users") {
+    return "Profile";
+  }
   if (pathSegments.length === 1) {
     return "Profile";
   }
