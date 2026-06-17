@@ -404,10 +404,11 @@ async function handleAddTracks(event) {
     return;
   }
 
-  const urls = rawValue
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const urls = extractSoundCloudInputs(rawValue);
+  if (!urls.length) {
+    setStatus("Не нашел ссылку SoundCloud в вставленном тексте.", true);
+    return;
+  }
 
   const wasEmpty = state.queue.length === 0;
   let addedCount = 0;
@@ -1088,6 +1089,37 @@ function setStatus(message, isError = false) {
 function updateRangeFill(element, value, max) {
   const ratio = max <= 0 ? 0 : (value / max) * 100;
   element.style.setProperty("--range-fill", `${ratio}%`);
+}
+
+function extractSoundCloudInputs(rawText) {
+  const lines = rawText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const extractedUrls = [];
+  for (const line of lines) {
+    const foundUrls = extractUrlsFromText(line);
+    if (foundUrls.length) {
+      extractedUrls.push(...foundUrls);
+    } else {
+      extractedUrls.push(line);
+    }
+  }
+
+  return [...new Set(extractedUrls.map(cleanExtractedUrl).filter(Boolean))];
+}
+
+function extractUrlsFromText(text) {
+  const matches = text.match(/https?:\/\/[^\s<>"'()]+/gi) || [];
+  return matches.map(cleanExtractedUrl).filter(Boolean);
+}
+
+function cleanExtractedUrl(url) {
+  return String(url)
+    .trim()
+    .replace(/^[<("'`\[]+/, "")
+    .replace(/[>)"'`\],.!?]+$/, "");
 }
 
 function normalizeSoundCloudUrl(rawUrl) {
